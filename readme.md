@@ -1,108 +1,171 @@
-Hi hello 
-This project is a kernel level USB device monitoring and logging system
-which means it logs usb connect/disconnect events in linux using a kernel module, exposes them through /dev/devlogger and stores them into a mysql database using python automation script
+# Kernel-Level USB Device Monitoring and Logging System
 
-## File structure
-- `devlogger.c` : the main loadable kernel module
-- `collector.py` : the automation script that reads events and logs them in the mysql database
-- `Makefile` : builds the kernel module
+Hi hello 
+
+This project logs USB connect/disconnect events in Linux using a kernel module, exposes those events through `/dev/devlogger`, and stores them in a MySQL database using a Python automation script.
 
 ---
 
-##How it works
+## File Structure
+
+- `devlogger.c` — main loadable kernel module  
+- `collector.py` — user-space automation script that reads events and logs them into MySQL  
+- `Makefile` — builds the kernel module
+
+---
+
+## How It Works
 
 ```text
-usb insert/remove -> kernel module detects event -> event exposed via /dev/devlogger file -> python collector reads events from the user space -> stores in mysql database
+USB insert/remove
+↓
+Kernel module detects event
+↓
+Event exposed via /dev/devlogger
+↓
+Python collector reads event in user space
+↓
+Stored in MySQL database
 ```
+
 ---
 
-##How to make it run in your linux 
+# Setup
+
+Install dependencies:
+
 ```bash
 sudo apt install build-essential linux-headers-$(uname -r)
 ```
 
-Compile:
-```bash 
-make 
+Compile kernel module:
+
+```bash
+make
 ```
 
-Load the Loadable Kernel Module
+Load the module:
+
 ```bash
 sudo insmod devlogger.ko
 ```
 
-Check if it's installed properly
-```bash 
+Check if it loaded:
+
+```bash
 ls /dev/devlogger
 ```
 
-Setup the database using mysql
+---
+
+# Setup Database
+
+Open **Terminal 1** and start MySQL:
+
 ```bash
 mysql -u root -p
 ```
 
-Create database and table in mysql:
+Create database and table:
 
 ```sql
-create database usblogs;
-use usblogs;
+CREATE DATABASE usblogs;
+USE usblogs;
 
-create table logs(
-	id int auto_increment primary key, 
-	timestamp double,
-	action varchar(20),
-	vid varchar(10),
-	pid varchar(10), 
-	latency_ms double
+CREATE TABLE logs(
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ timestamp DOUBLE,
+ action VARCHAR(20),
+ vid VARCHAR(10),
+ pid VARCHAR(10),
+ latency_ms DOUBLE
 );
+```
+
 ---
 
-##Important changes to make
+# Important Change
 
-You must change the username and password in the collector.py script so the script can access the mySQL
-Open the collector.py in your editor and come to lines 6 and 7
-Set your user and password (Tip: You can use root as user if you are not sure) 
+Before running the collector:
+
+Open `collector.py`
+
+Update the database credentials (lines with `user=` and `password=`):
+
+```python
+user="your_mysql_user"
+password="your_password"
+```
+
+(Using `root` is fine for testing.)
+
 ---
 
-## Run collector.py script
+# Run the Project (Use Two Terminals)
 
-Open a new terminal (let the mySQL terminal keep running) and run the following command: 
+## Terminal 1
+Keep MySQL open for queries.
+
+## Terminal 2
+Run the collector:
+
 ```bash
 python3 collector.py
 ```
 
-Plug or unplug USBs 
-These events will get logged into the database 
+Plug or unplug USB devices.
+
+Events will be detected and stored automatically.
 
 ---
 
-## View data and analytics
+# View Data / Analytics
 
-Go to the mySQL terminal (I told you not to close that >:( )and type the following queries for analytics:
-### View all logs
-```sql
+Go back to **Terminal 1** (told you not to close it >:/ )
 
-select * from logs;
-```
-### Get average latency
+## View all logs
 
 ```sql
-select avg(latency_ms) from logs;
+SELECT * FROM logs;
 ```
+
+## Average latency
+
+```sql
+SELECT AVG(latency_ms) FROM logs;
+```
+
+## Min and max latency
+
+```sql
+SELECT MIN(latency_ms), MAX(latency_ms)
+FROM logs;
+```
+
+## Device frequency
+
+```sql
+SELECT vid,pid,COUNT(*)
+FROM logs
+GROUP BY vid,pid;
+```
+
 ---
 
-## Remove module
-```bash 
+# Remove Module
+
+When done:
+
+```bash
 sudo rmmod devlogger
 ```
 
 ---
 
-##Features
+# Features
 
-- USB event detection
-- Kernel Character Device
-- mySQL logging
-- Latency and throughput metrics
+- USB event detection  
+- Kernel character device (`/dev/devlogger`)  
+- MySQL logging  
+- Latency / throughput metrics  
 - Device activity analytics
-
