@@ -3,8 +3,8 @@ import mysql.connector
 
 db = mysql.connector.connect(
     host="127.0.0.1",
-    user="root",
-    password="anurag.06",
+    user="<your username here>",
+    password="<your password here>",
     database="usblogs",
     ssl_disabled=True
 )
